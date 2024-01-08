@@ -78,37 +78,67 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-contract keepcodingToken /* is IERC20 */ {
-    // Variables que indican nombre del contrato, simbolo del token y los decimales
-
-    string public name = "keepcoding Token";
+contract KeepcodingToken is IERC20 {
+    string public name = "KeepCoding Token";
     string public symbol = "KCT";
     uint8 public decimals = 2;
 
+    uint public totalSupply;
+
     mapping(address => uint) public balanceOf;
+    mapping(address => mapping(address => uint)) public allowance;
 
-    // Creamos un error que puede ser posible
-    error insufficietBalance(uint trasnfer_amount, uint current_balance);
+    error InsufficientBalance(uint transfer_amount, uint current_balance);
+    error InsufficientAllowance(uint transfer_amount, uint current_approval);
 
-    // Le decimos que la direccion del creador es publica
     address public creator;
 
     constructor () {
         creator = msg.sender;
-        //mint(10000, msg.sender);
+        mint(10000, msg.sender);
     }
-    
+
     function transfer(address to, uint256 value) external returns (bool) {
         if (balanceOf[msg.sender] < value) {
-            revert insufficietBalance(value, balanceOf[msg.sender]);
+            revert InsufficientBalance(value, balanceOf[msg.sender]);
         }
         balanceOf[msg.sender] -= value;
         balanceOf[to] += value;
+        emit Transfer(msg.sender, to, value);
         return true;
     }
 
-    function mint(uint amount) external {
-        require(msg.sender == creator, "Solo el creador puede hacer mint");
-        balanceOf[msg.sender] += amount;
+    function approve(address spender, uint256 value) external returns (bool) {
+        allowance[msg.sender][spender] += value;
+        emit Approval(msg.sender, spender, value);
+        return true;
     }
+
+    function transferFrom(address from, address to, uint256 value) external returns (bool) {
+        if (balanceOf[from] < value) {
+            revert InsufficientBalance(value, balanceOf[from]);
+        }
+        if (allowance[from][msg.sender] < value) {
+            revert InsufficientAllowance(value, allowance[from][msg.sender]);
+        }
+        balanceOf[from] -= value;
+        balanceOf[to] += value;
+        allowance[from][msg.sender] -= value;
+        emit Transfer(from, to, value);
+        return true;
+    }
+
+    function mint(uint amount, address receiver) public {
+        require(msg.sender == creator, "Solo el creador puede hacer mint");
+        balanceOf[receiver] += amount;
+        totalSupply += amount;
+        emit Transfer(address(0), receiver, amount);
+    }
+
+    function burn(uint amount) external {
+        balanceOf[msg.sender] -= amount;
+        totalSupply -= amount;
+        emit Transfer(msg.sender, address(0), amount);
+    }
+
 }
