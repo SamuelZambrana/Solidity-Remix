@@ -1,1 +1,2 @@
-# Repositorio para smart contract con Solidity en remix
+# Remix
+Entorno de desarrollo de ethereum para smart contract con algunos ejemplos
